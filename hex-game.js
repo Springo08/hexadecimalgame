@@ -167,9 +167,12 @@
         const lastProblem = gameState.problems[gameState.problems.length - 1];
         const lastWasReverse = lastProblem && lastProblem.isReverse;
 
-        // 20% chance for reverse problem (IF last was not reverse)
-        // Effective probability: ~16%
-        const isReverse = !lastWasReverse && Math.random() <= 0.20;
+        // Determine if this should be a reverse problem (hex to decimal)
+        // 25% chance (1/4), but NEVER two in a row
+        let isReverse = false;
+        if (!lastWasReverse && Math.random() < 0.25) {
+            isReverse = true;
+        }
         const newProblem = {
             id: gameState.nextProblemId++,
             targetDecimal: targetDecimal,
