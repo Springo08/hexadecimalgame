@@ -277,13 +277,44 @@
     // Render all problems
     function renderProblems() {
         if (!problemContainer) return;
+
+        // Save focus state
+        const activeElement = document.activeElement;
+        let focusedProblemId = null;
+        let selectionStart = 0;
+        let selectionEnd = 0;
+
+        if (activeElement && activeElement.tagName === 'INPUT') {
+            const problemId = activeElement.getAttribute('data-problem-id');
+            if (problemId) {
+                focusedProblemId = parseInt(problemId);
+                selectionStart = activeElement.selectionStart;
+                selectionEnd = activeElement.selectionEnd;
+            }
+        }
+
         problemContainer.innerHTML = '';
         // Render all problems (including disappearing ones for animation)
         gameState.problems.forEach((problem, index) => {
             const problemElement = createProblemElement(problem, index);
             problemContainer.appendChild(problemElement);
         });
+
         updateLinesLeft();
+
+        // Restore focus state
+        if (focusedProblemId !== null) {
+            const input = document.querySelector(`input[data-problem-id="${focusedProblemId}"]`);
+            if (input) {
+                input.focus();
+                // Restore cursor position
+                try {
+                    input.setSelectionRange(selectionStart, selectionEnd);
+                } catch (e) {
+                    console.error("Could not set selection range", e);
+                }
+            }
+        }
     }
     // Update lines left display
     function updateLinesLeft() {
