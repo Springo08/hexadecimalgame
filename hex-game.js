@@ -132,8 +132,8 @@
     function spawnProblem() {
         const maxValue = Math.min(65535, 15 + (gameState.level * 50));
         const targetDecimal = Math.floor(Math.random() * maxValue) + 1;
-        // 33% chance for reverse problem (hex given, find decimal)
-        const isReverse = Math.random() <= 0.33;
+        // 25% chance for reverse problem (hex given, find decimal)
+        const isReverse = Math.random() <= 0.25;
         const newProblem = {
             id: gameState.nextProblemId++,
             targetDecimal: targetDecimal,
