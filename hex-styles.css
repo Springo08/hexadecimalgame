@@ -786,74 +786,78 @@ button:active {
 }
 
 .start-screen-overlay {
-    background-color: rgba(0, 0, 0, 0.4);
-    /* Dark overlay around the box */
-    backdrop-filter: blur(2px);
-    /* Slight blur for focus */
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
 }
 
 .transparent-modal {
-    background-color: rgba(255, 255, 255, 0.9);
-    /* White semi-transparent box */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    max-width: 60%;
-    /* Slightly narrower for a card look */
+    background-color: rgba(0, 80, 115, 0.95);
+    /* Game Blue #005073 with slight transparency */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
     padding: 40px;
-    border-radius: 8px;
+    border-radius: 4px;
+    /* Matching game windows */
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .game-title {
     font-size: 3em;
-    color: #4b3206;
-    /* Darker text for white background */
-    text-shadow: none;
-    /* Removed shadow for clean look */
+    color: white;
+    /* White text on blue bg */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     margin-bottom: 20px;
     letter-spacing: 2px;
+    font-family: 'Cisco', sans-serif;
 }
 
 .game-subtitle {
     font-size: 1.2em;
-    color: #005073;
-    /* Match game blue */
-    margin-bottom: 30px;
+    color: #e0e0e0;
+    /* Off-white for subtitle */
+    margin-bottom: 40px;
     text-shadow: none;
+    line-height: 1.5;
 }
 
 .play-btn {
     font-size: 1.5em;
-    padding: 15px 40px;
+    padding: 15px 50px;
     background-color: #fbab18;
-    color: white;
+    color: #06354a;
+    /* Matching game button text color */
     border: none;
-    border-radius: 30px;
+    border-radius: 4px;
+    /* Matching game buttons */
     cursor: pointer;
     font-weight: bold;
-    box-shadow: 0 4px 10px rgba(251, 171, 24, 0.4);
-    /* Softer shadow */
-    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
-    margin-bottom: 20px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 0 #c78d1c;
+    transition: transform 0.1s, box-shadow 0.1s;
+    margin-bottom: 30px;
 }
 
 .play-btn:hover {
-    background-color: #ffb938;
+    background-color: #ffc44d;
 }
 
 .play-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 5px rgba(251, 171, 24, 0.4);
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #c78d1c;
 }
 
 .instructions-link {
-    color: #00bceb;
-    /* Link color */
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     font-size: 0.9em;
-    text-decoration: underline;
-    opacity: 1;
-    transition: color 0.2s;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.5);
+    transition: all 0.2s;
+    display: inline-block;
+    padding-bottom: 2px;
 }
 
 .instructions-link:hover {
-    color: #009ec5;
+    color: white;
+    border-bottom-color: white;
 }

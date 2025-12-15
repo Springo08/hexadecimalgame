@@ -13,7 +13,11 @@
         isPaused: false,
         timerInterval: null,
         spawnInterval: null,
-        nextProblemId: 0
+        timerInterval: null,
+        spawnInterval: null,
+        nextProblemId: 0,
+        soundEnabled: true,
+        audioContext: null
     };
     // Constants
     const MAX_PROBLEMS = 7; // Maximum problems that can be on screen at once
@@ -57,34 +61,37 @@
         if (startModal) startModal.remove();
 
         const tutorialModal = document.createElement('div');
-        tutorialModal.className = 'modal-container displayed';
+        tutorialModal.className = 'modal-container displayed start-screen-overlay';
         tutorialModal.innerHTML = `
-            <div class="modal">
-                <h1>How to Play</h1>
-                    <div class="modal-body">
-                        <h2>Hexadecimal System</h2>
-                        <p>Hexadecimal (base-16) uses 16 digits: 0-9 and A-F (where A=10, B=11, C=12, D=13, E=14, F=15)</p>
-                        
-                        <h2>Game Rules</h2>
-                        <ul>
-                            <li><strong>Left-click</strong> hex digit buttons to cycle through values (0→1→2→...→F→0)</li>
-                            <li><strong>Right-click</strong> hex digit buttons to reset them to 0 (backspace)</li>
-                            <li>Match the decimal number shown on the right</li>
-                            <li>Solved problems will disappear automatically</li>
-                            <li>Complete all problems before time runs out</li>
-                            <li>Each level gets progressively harder with higher numbers</li>
-                        </ul>
-                        
-                        <h2>Example</h2>
-                        <p>To make decimal 175:</p>
-                        <p>A × 16 + F × 1 = 10 × 16 + 15 × 1 = 175</p>
-                        <p>So the answer is: AF</p>
-                        
-                        <button onclick="window.hexGame.createStartScreen()">Back to Menu</button>
-                    </div>
+            <div class="modal transparent-modal" style="max-width: 700px; text-align: left;">
+                <h1 class="game-title" style="font-size: 2.5em; text-align: center;">HOW TO PLAY</h1>
+                
+                <h3 style="color: #fbab18; margin-bottom: 10px;">THE MISSION</h3>
+                <p style="color: #e0e0e0; margin-bottom: 20px;">
+                    Convert the <strong>Decimal Number</strong> (base-10) shown on the right into its <strong>Hexadecimal</strong> (base-16) equivalent.
+                </p>
+
+                <h3 style="color: #fbab18; margin-bottom: 10px;">CONTROLS</h3>
+                <ul style="color: #e0e0e0; margin-bottom: 20px; line-height: 1.6;">
+                    <li><strong>Left-Click</strong> a digit to cycle (0-9, A-F).</li>
+                    <li><strong>Right-Click</strong> a digit to reset to 0.</li>
+                    <li><strong>Digits</strong>: 0-9 represent values 0-9. <br>A=10, B=11, C=12, D=13, E=14, F=15.</li>
+                </ul>
+
+                <h3 style="color: #fbab18; margin-bottom: 10px;">SCORING</h3>
+                <ul style="color: #e0e0e0; margin-bottom: 30px; line-height: 1.6;">
+                    <li><strong>Level 1</strong>: 100 points per solve.</li>
+                    <li><strong>Level 2+</strong>: 125 points per solve.</li>
+                    <li><strong>Bonus</strong>: Clear the board for +250 points!</li>
+                    <li><strong>Time</strong>: Solve basic problems quickly to prevent overflow.</li>
+                </ul>
+
+                <div style="text-align: center;">
+                    <button onclick="window.hexGame.createStartScreen()" class="play-btn">BACK TO MENU</button>
                 </div>
             </div>
         `;
+        gameRoot.appendChild(tutorialModal);
     }
     // Start game
     function startGame() {
@@ -240,6 +247,7 @@
                         </div>
                     </div>
                     <div class="buttons">
+                        <button id="soundToggleBtn" onclick="window.hexGame.toggleSound()">Sound: On</button>
                         <button onclick="window.hexGame.pauseGame()">Pause</button>
                         <button onclick="window.hexGame.endGame()">Quit</button>
                     </div>
@@ -496,6 +504,8 @@
 
             addScore(pointsToAdd);
             showScoreToast('+' + pointsToAdd);
+            playSuccessSound();
+
             // Trigger disappear animation
             const problemElement = document.querySelector(`[data-problem-id="${problem.id}"]`);
             if (problemElement) {
@@ -523,6 +533,7 @@
                     // Board Clear Bonus
                     addScore(250);
                     showScoreToast('Board Clear! +250');
+                    playSuccessSound(); // Extra sound for bonus? Maybe just the normal one is fine for now
 
                     // Spawn 2-4 new problems
                     const numToSpawn = Math.floor(Math.random() * 3) + 2; // Random 2, 3, or 4
@@ -648,6 +659,7 @@
     // Start next level
     function startNextLevel() {
         // Remove modal
+        const modal = document.querySelector('.modal-container');
         if (modal) {
             modal.remove();
         }
@@ -692,21 +704,34 @@
 
     // Save score to local storage
     function saveScore(score) {
-        const scores = JSON.parse(localStorage.getItem('hexGameScores')) || [];
-        scores.push({
-            score: score,
-            date: new Date().toLocaleDateString()
-        });
+        try {
+            const scores = JSON.parse(localStorage.getItem('hexGameScores')) || [];
+            scores.push({
+                score: score,
+                date: new Date().toLocaleDateString()
+            });
 
-        // Sort by score descending
-        scores.sort((a, b) => b.score - a.score);
+            // Sort by score descending
+            scores.sort((a, b) => b.score - a.score);
 
-        localStorage.setItem('hexGameScores', JSON.stringify(scores));
+            localStorage.setItem('hexGameScores', JSON.stringify(scores));
+        } catch (e) {
+            console.error("Failed to save score:", e);
+            // Reset storage if corrupted
+            try {
+                localStorage.removeItem('hexGameScores');
+            } catch (e2) { }
+        }
     }
 
     // Get high scores
     function getHighScores() {
-        return JSON.parse(localStorage.getItem('hexGameScores')) || [];
+        try {
+            return JSON.parse(localStorage.getItem('hexGameScores')) || [];
+        } catch (e) {
+            console.error("Failed to load scores:", e);
+            return [];
+        }
     }
 
     // Show game over screen with leaderboard
@@ -769,6 +794,66 @@
     function hexToDecimal(hexString) {
         return parseInt(hexString, 16);
     }
+    // Audio System
+    function initAudio() {
+        if (!gameState.audioContext) {
+            gameState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (gameState.audioContext.state === 'suspended') {
+            gameState.audioContext.resume();
+        }
+    }
+
+    function toggleSound() {
+        gameState.soundEnabled = !gameState.soundEnabled;
+        const btn = document.getElementById('soundToggleBtn');
+        if (btn) {
+            btn.textContent = gameState.soundEnabled ? 'Sound: On' : 'Sound: Off';
+        }
+        // Initialize audio context on user interaction if needed
+        initAudio();
+    }
+
+    function playSuccessSound() {
+        if (!gameState.soundEnabled) return;
+        initAudio(); // Ensure context is ready
+
+        const ctx = gameState.audioContext;
+        const now = ctx.currentTime;
+
+        // Main tone (Fundamental)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now); // A5
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+
+        gain1.gain.setValueAtTime(0.1, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        // Overtone (Metallic "Tine" sound)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+
+        // Non-integer multiple creates metallic inharmonicity
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(880 * 2.5, now); // ~2200Hz
+
+        gain2.gain.setValueAtTime(0.05, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15); // Faster decay
+
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+
+        osc2.start(now);
+        osc2.stop(now + 0.15);
+    }
+
     // Export public API
     window.hexGame = {
         init,
@@ -781,6 +866,7 @@
         pauseGame,
         endGame,
         startNextLevel,
+        toggleSound, // Exported
         renderProblems // For debugging
     };
     // Auto-initialize when DOM is ready
