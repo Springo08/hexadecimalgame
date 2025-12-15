@@ -31,27 +31,36 @@
         gameRoot = document.getElementById('gameRoot');
         createStartScreen();
     }
-    // Create start screen modal
+    // Create start screen
     function createStartScreen() {
-        gameRoot.innerHTML = `
-            <div class="modal-container displayed">
-                <div class="modal">
-                    <h1>Hexadecimal Game</h1>
-                    <div class="modal-body">
-                        <p>Use your hexadecimal math skills to quickly solve as many puzzles as you can!</p>
-                        <button onclick="window.hexGame.startGame()">Play Game</button>
-                        <button onclick="window.hexGame.showTutorial()">Instructions</button>
-                    </div>
-                </div>
+        // Render the empty game board first so it's visible in the background
+        createGameBoard();
+
+        // Add start screen modal on top
+        const startModal = document.createElement('div');
+        startModal.className = 'modal-container displayed start-screen-overlay';
+        startModal.innerHTML = `
+            <div class="modal transparent-modal">
+                <h1 class="game-title">HEXADECIMAL GAME</h1>
+                <p class="game-subtitle">Use your hexadecimal math skills to quickly solve as many puzzles as you can!</p>
+                <button onclick="window.hexGame.startGame()" class="play-btn">PLAY GAME</button>
+                <div class="instructions-link" onclick="window.hexGame.showTutorial()">INSTRUCTIONS</div>
             </div>
         `;
+        gameRoot.appendChild(startModal);
     }
+
     // Show tutorial
     function showTutorial() {
-        gameRoot.innerHTML = `
-            <div class="modal-container displayed">
-                <div class="modal">
-                    <h1>How to Play</h1>
+        // Keep game board in background
+        const startModal = document.querySelector('.modal-container');
+        if (startModal) startModal.remove();
+
+        const tutorialModal = document.createElement('div');
+        tutorialModal.className = 'modal-container displayed';
+        tutorialModal.innerHTML = `
+            <div class="modal">
+                <h1>How to Play</h1>
                     <div class="modal-body">
                         <h2>Hexadecimal System</h2>
                         <p>Hexadecimal (base-16) uses 16 digits: 0-9 and A-F (where A=10, B=11, C=12, D=13, E=14, F=15)</p>
@@ -87,7 +96,29 @@
         gameState.problemsCompleted = 0;
         gameState.problems = [];
         gameState.nextProblemId = 0;
-        createGameBoard();
+        gameState.nextProblemId = 0;
+
+        // Remove start screen modal
+        const startModal = document.querySelector('.modal-container');
+        if (startModal) {
+            startModal.remove();
+        }
+
+        // Game board is already rendered by createStartScreen
+        // But we might need to reset it if retrying
+        if (!document.querySelector('.gameboard')) {
+            createGameBoard();
+        } else {
+            // Reset board state if needed (clear existing problems)
+            const problemContainer = document.getElementById('problemContainer');
+            if (problemContainer) problemContainer.innerHTML = '';
+
+            // Re-initialize elements since we might have re-created the board or just cleared it
+            if (typeof updateLinesLeft === 'function') {
+                updateLinesLeft();
+            }
+        }
+
         startLevel();
         startTimer();
     }
@@ -425,8 +456,12 @@
             problem.solved = true;
             problem.isDisappearing = true;
             gameState.problemsCompleted++;
-            addScore(100);
-            showScoreToast('+100');
+
+            // Score handling: 100 points for Level 1, 125 points for Level 2+
+            const pointsToAdd = gameState.level >= 2 ? 125 : 100;
+
+            addScore(pointsToAdd);
+            showScoreToast('+' + pointsToAdd);
             // Trigger disappear animation
             const problemElement = document.querySelector(`[data-problem-id="${problem.id}"]`);
             if (problemElement) {
@@ -436,26 +471,90 @@
             setTimeout(() => {
                 gameState.problems = gameState.problems.filter(p => p.id !== problem.id);
                 renderProblems();
-                // If no problems left, spawn one immediately
+                // If no problems left, Board Clear Bonus!
                 if (gameState.problems.length === 0) {
+                    // Check if level is complete first
                     const problemsRequired = getProblemsRequired(gameState.level);
-                    const totalProblemsSpawned = gameState.problemsCompleted + gameState.problems.length;
-                    if (totalProblemsSpawned < problemsRequired) {
-                        spawnProblem();
+                    const totalProblemsSpawned = gameState.problemsCompleted + gameState.problems.length; // problems.length is 0 here
+
+                    // Only trigger board clear if we are NOT finishing the level
+                    // Actually, if we finish the level, we might still want the points, 
+                    // but we shouldn't spawn new problems if level is done.
+
+                    if (gameState.problemsCompleted >= problemsRequired) {
+                        levelComplete();
+                        return; // Stop here, level is done
                     }
-                }
-                // Check if level complete
-                const problemsRequired = getProblemsRequired(gameState.level);
-                if (gameState.problemsCompleted >= problemsRequired) {
-                    levelComplete();
+
+                    // Board Clear Bonus
+                    addScore(250);
+                    showScoreToast('Board Clear! +250');
+
+                    // Spawn 2-4 new problems
+                    const numToSpawn = Math.floor(Math.random() * 3) + 2; // Random 2, 3, or 4
+
+                    // Spawn them with slight delay for visuals
+                    let spawnedCount = 0;
+
+                    const spawnLoop = () => {
+                        const currentTotal = gameState.problemsCompleted + gameState.problems.length;
+                        if (currentTotal < problemsRequired && spawnedCount < numToSpawn) {
+                            spawnProblem();
+                            spawnedCount++;
+                            setTimeout(spawnLoop, 300);
+                        }
+                    };
+
+                    spawnLoop();
+                } else {
+                    // Ensure we check for level complete even if board isn't empty
+                    // (Though usually level complete happens when board is empty or filled)
+                    // Wait, logic check: problemsCompleted increases when solved.
+                    // If we solve one and there are others left, we still might be done.
+
+                    const problemsRequired = getProblemsRequired(gameState.level);
+                    if (gameState.problemsCompleted >= problemsRequired) {
+                        levelComplete();
+                    }
                 }
             }, 800);
         }
     }
-    // Add score with animation
+    // Add score with satisfying counting animation
     function addScore(points) {
+        const startScore = gameState.score;
         gameState.score += points;
-        scoreElement.textContent = gameState.score;
+        const endScore = gameState.score;
+
+        // Cancel any existing animation
+        if (gameState.scoreAnimationId) {
+            cancelAnimationFrame(gameState.scoreAnimationId);
+        }
+
+        const duration = 1000; // 1 second animation
+        const startTime = performance.now();
+
+        function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Ease out quart for satisfying slow down at end
+            // 1 - pow(1 - x, 4)
+            const ease = 1 - Math.pow(1 - progress, 4);
+
+            const currentVal = Math.floor(startScore + (points * ease));
+            scoreElement.textContent = currentVal;
+
+            if (progress < 1) {
+                gameState.scoreAnimationId = requestAnimationFrame(animate);
+            } else {
+                scoreElement.textContent = endScore;
+                gameState.scoreAnimationId = null;
+            }
+        }
+
+        gameState.scoreAnimationId = requestAnimationFrame(animate);
+
         scoreElement.classList.add('updating');
         setTimeout(() => scoreElement.classList.remove('updating'), 200);
     }
@@ -515,7 +614,6 @@
     // Start next level
     function startNextLevel() {
         // Remove modal
-        const modal = document.querySelector('.modal-container');
         if (modal) {
             modal.remove();
         }
