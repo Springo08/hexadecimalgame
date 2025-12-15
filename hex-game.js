@@ -132,8 +132,13 @@
     function spawnProblem() {
         const maxValue = Math.min(65535, 15 + (gameState.level * 50));
         const targetDecimal = Math.floor(Math.random() * maxValue) + 1;
-        // 25% chance for reverse problem (hex given, find decimal)
-        const isReverse = Math.random() <= 0.25;
+        // Check last problem to prevent streaks
+        const lastProblem = gameState.problems[gameState.problems.length - 1];
+        const lastWasReverse = lastProblem && lastProblem.isReverse;
+
+        // 20% chance for reverse problem (IF last was not reverse)
+        // Effective probability: ~16%
+        const isReverse = !lastWasReverse && Math.random() <= 0.20;
         const newProblem = {
             id: gameState.nextProblemId++,
             targetDecimal: targetDecimal,
@@ -549,11 +554,45 @@
             clearInterval(gameState.spawnInterval);
             gameState.spawnInterval = null;
         }
+        saveScore(gameState.score);
         showGameOverScreen();
     }
-    // Show game over screen
+
+    // Save score to local storage
+    function saveScore(score) {
+        const scores = JSON.parse(localStorage.getItem('hexGameScores')) || [];
+        scores.push({
+            score: score,
+            date: new Date().toLocaleDateString()
+        });
+
+        // Sort by score descending
+        scores.sort((a, b) => b.score - a.score);
+
+        localStorage.setItem('hexGameScores', JSON.stringify(scores));
+    }
+
+    // Get high scores
+    function getHighScores() {
+        return JSON.parse(localStorage.getItem('hexGameScores')) || [];
+    }
+
+    // Show game over screen with leaderboard
     function showGameOverScreen() {
         const problemsRequired = getProblemsRequired(gameState.level);
+        const highScores = getHighScores();
+
+        // Take top 10 for display (or all if user really wants, but 10 is usually better UI)
+        // User said "alle vorherigen scores", implies a scrollable list if many.
+        // Let's make the list scrollable in CSS.
+
+        let leaderboardHtml = highScores.map((s, index) => `
+            <div class="score-item ${s.score === gameState.score && index === highScores.findIndex(x => x.score === gameState.score && x.date === s.date) ? 'current-score' : ''}">
+                <span class="rank">${index + 1}.</span>
+                <span class="score-val">${s.score}</span>
+                <span class="date">${s.date}</span>
+            </div>
+        `).join('');
         gameRoot.innerHTML = `
             <div class="modal-container displayed">
                 <div class="modal">
@@ -573,8 +612,18 @@
                                 <span>${gameState.problemsCompleted}</span>
                             </div>
                         </div>
-                        <button onclick="window.hexGame.startGame()">Play Again</button>
-                        <button onclick="window.hexGame.createStartScreen()">Main Menu</button>
+                        
+                        <div class="leaderboard-section">
+                            <h3>High Scores</h3>
+                            <div class="leaderboard-list">
+                                ${leaderboardHtml}
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button onclick="window.hexGame.startGame()">Play Again</button>
+                            <button onclick="window.hexGame.createStartScreen()">Main Menu</button>
+                        </div>
                     </div>
                 </div>
             </div>
