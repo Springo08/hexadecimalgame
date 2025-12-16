@@ -175,9 +175,11 @@
         const lastWasReverse = lastProblem && lastProblem.isReverse;
 
         // Determine if this should be a reverse problem (hex to decimal)
-        // 25% chance (1/4), but NEVER two in a row
+        // User requested "a tick more" frequent than 25%.
+        // Setting conditional prob to 0.4 (40%).
+        // Effective rate ~ p/(1+p) = 0.4/1.4 = ~28.5%
         let isReverse = false;
-        if (!lastWasReverse && Math.random() < 0.25) {
+        if (!lastWasReverse && Math.random() < 0.40) {
             isReverse = true;
         }
         const newProblem = {
@@ -499,8 +501,8 @@
             problem.isDisappearing = true;
             gameState.problemsCompleted++;
 
-            // Score handling: 100 points for Level 1, 125 points for Level 2+
-            const pointsToAdd = gameState.level >= 2 ? 125 : 100;
+            // Score handling: 100 points for Level 1, +25 for each subsequent level
+            const pointsToAdd = 100 + (gameState.level - 1) * 25;
 
             addScore(pointsToAdd);
             showScoreToast('+' + pointsToAdd);
