@@ -150,9 +150,9 @@
     // Spawn a problem if needed
     function spawnIfNeeded() {
         const problemsRequired = getProblemsRequired(gameState.level);
-        const totalProblemsSpawned = gameState.problemsCompleted + gameState.problems.length;
-        // Check if we've reached the required problems for this level
-        if (totalProblemsSpawned < problemsRequired) {
+
+        // Check if we've completed the level
+        if (gameState.problemsCompleted < problemsRequired) {
             // Check if table is full (MAX_PROBLEMS)
             if (gameState.problems.length >= MAX_PROBLEMS) {
                 // Game Over - table is full!
@@ -544,8 +544,8 @@
                     let spawnedCount = 0;
 
                     const spawnLoop = () => {
-                        const currentTotal = gameState.problemsCompleted + gameState.problems.length;
-                        if (currentTotal < problemsRequired && spawnedCount < numToSpawn) {
+                        // Continue spawning if level not done (based on completed count)
+                        if (gameState.problemsCompleted < problemsRequired && spawnedCount < numToSpawn) {
                             spawnProblem();
                             spawnedCount++;
                             setTimeout(spawnLoop, 300);
